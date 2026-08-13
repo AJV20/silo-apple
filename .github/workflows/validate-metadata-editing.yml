@@ -1,0 +1,43 @@
+name: Validate iOS Metadata Editing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+
+      - name: Install XcodeGen
+        run: |
+          curl -fsSL -o /tmp/xcodegen.zip \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.43.0/xcodegen.zip
+          unzip -q /tmp/xcodegen.zip -d /tmp/xcodegen-dist
+          sudo /tmp/xcodegen-dist/xcodegen/install.sh /usr/local
+
+      - name: Generate project
+        run: cd iosApp && xcodegen generate
+
+      - name: Run metadata editing tests
+        run: |
+          cd iosApp
+          xcodebuild test \
+            -project Silo.xcodeproj \
+            -scheme Silo \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -only-testing:SiloTests/MetadataEditingTests \
+            CODE_SIGN_IDENTITY='' CODE_SIGNING_ALLOWED=NO
+
+      - name: Build iOS
+        run: |
+          cd iosApp
+          xcodebuild build \
+            -project Silo.xcodeproj \
+            -scheme Silo \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            CODE_SIGN_IDENTITY='' CODE_SIGNING_ALLOWED=NO
