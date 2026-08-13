@@ -369,7 +369,18 @@ actor ContinuumAPI {
         return UserInfo(
             id: String(user.id),
             username: user.username,
-            isAdmin: user.role == "admin"
+            isAdmin: user.role == "admin",
+            permissions: user.permissions ?? []
+        )
+    }
+
+    func updateItemMetadata(
+        contentId: String,
+        request: UpdateItemMetadataRequest
+    ) async throws -> ItemDetail {
+        try await http.patch(
+            "/api/v1/admin/items/\(contentId)/metadata",
+            body: request
         )
     }
 

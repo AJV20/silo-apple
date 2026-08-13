@@ -31,8 +31,27 @@ struct AuthUser: Codable {
     let username: String
     let email: String
     let role: String
+    let permissions: [String]?
     let downloadAllowed: Bool?
     let impersonation: ImpersonationInfo?
+
+    init(
+        id: Int,
+        username: String,
+        email: String,
+        role: String,
+        permissions: [String] = [],
+        downloadAllowed: Bool? = nil,
+        impersonation: ImpersonationInfo? = nil
+    ) {
+        self.id = id
+        self.username = username
+        self.email = email
+        self.role = role
+        self.permissions = permissions
+        self.downloadAllowed = downloadAllowed
+        self.impersonation = impersonation
+    }
 }
 
 struct ImpersonationInfo: Codable {

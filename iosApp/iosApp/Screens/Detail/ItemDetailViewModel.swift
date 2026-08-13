@@ -10,6 +10,10 @@ class ItemDetailViewModel {
     var isLoading = false
     var isRefreshing = false
     var error: ErrorState?
+    #if os(iOS)
+    var canEditMetadata = false
+    private var metadataAuthorizationLoaded = false
+    #endif
 
     // Series-specific state
     var seasons: [Season] = []
@@ -157,6 +161,48 @@ class ItemDetailViewModel {
         detailGeneration += 1
         return detailGeneration
     }
+
+    #if os(iOS)
+    func loadMetadataAuthorizationIfNeeded() async {
+        guard !metadataAuthorizationLoaded else { return }
+        metadataAuthorizationLoaded = true
+
+        do {
+            async let userRequest = ContinuumAPI.shared.currentUser()
+            async let profilesRequest = StartupContentPrefetcher.fetchProfiles()
+            let (user, profiles) = try await (userRequest, profilesRequest)
+            let activeProfileIsPrimary = profiles.first {
+                $0.id == AuthService.shared.profileId
+            }?.isPrimary == true
+            canEditMetadata = MetadataEditAuthorization.canEdit(
+                isAdmin: user.isAdmin == true,
+                permissions: user.permissions,
+                activeProfileIsPrimary: activeProfileIsPrimary
+            )
+        } catch {
+            // Fail closed. A server-side 403 remains the final guard when a
+            // permission changes after this capability probe.
+            canEditMetadata = false
+        }
+    }
+
+    func updateMetadata(_ request: UpdateItemMetadataRequest, contentId: String) async throws {
+        let item = try await ContinuumAPI.shared.updateItemMetadata(
+            contentId: contentId,
+            request: request
+        )
+        await apply(
+            item: item,
+            contentId: contentId,
+            preserveSeasonSelection: true
+        )
+        ResponseCache.shared.invalidateAllItemMetadata()
+        if let detail {
+            ResponseCache.shared.set(detail, for: CacheKey.itemDetail(contentId))
+        }
+        NotificationCenter.default.post(name: .homeSectionsShouldRefresh, object: nil)
+    }
+    #endif
 
     /// Publish a payload the caller re-fetched itself, taking the generation
     /// with it so an in-flight load can't land its older copy afterwards.
@@ -362,6 +408,7 @@ class ItemDetailViewModel {
                 studios: item.studios,
                 networks: item.networks,
                 countries: item.countries,
+                lockedFields: item.lockedFields,
                 releaseDate: item.releaseDate,
                 firstAirDate: item.firstAirDate,
                 lastAirDate: item.lastAirDate,

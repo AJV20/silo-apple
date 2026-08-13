@@ -76,6 +76,7 @@ private struct ItemDetailPhoneContent: View {
     @State private var refreshOnPlayerDismiss = false
     @State private var offlinePlayChoice: OfflinePlayChoice?
     @State private var unreachablePlayRequest: UnreachablePlayRequest?
+    @State private var showsMetadataEditor = false
     #if os(iOS)
     @Environment(SiloControlClient.self) private var siloControl
     @State private var controlRequestBox: ControlRequestBox?
@@ -106,6 +107,9 @@ private struct ItemDetailPhoneContent: View {
             nextUpWatchDetail = nil
             refreshOnPlayerDismiss = false
             await viewModel.loadDetail(contentId: contentId)
+            #if os(iOS)
+            await viewModel.loadMetadataAuthorizationIfNeeded()
+            #endif
             seedSubtitleOverrideIfNeeded()
         }
         .onAppear {
@@ -195,6 +199,19 @@ private struct ItemDetailPhoneContent: View {
         }
         #if os(iOS)
         .toolbar {
+            if let detail = viewModel.detail,
+               viewModel.canEditMetadata,
+               MetadataEditableItem.supports(detail.type) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsMetadataEditor = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .tint(.continuumOnSurface)
+                    .accessibilityLabel("Edit Metadata")
+                }
+            }
             if let detail = viewModel.detail, isDirectlyPlayable(detail) {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -211,6 +228,13 @@ private struct ItemDetailPhoneContent: View {
         }
         .sheet(item: $controlRequestBox) { box in
             SiloControlTargetPickerView(request: box.request, controller: siloControl)
+        }
+        .sheet(isPresented: $showsMetadataEditor) {
+            if let detail = viewModel.detail {
+                MetadataEditSheet(item: detail) { request in
+                    try await viewModel.updateMetadata(request, contentId: contentId)
+                }
+            }
         }
         #endif
     }

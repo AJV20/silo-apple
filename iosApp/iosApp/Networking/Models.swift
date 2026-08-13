@@ -426,6 +426,7 @@ struct ItemDetail: Codable {
     let studios: [String]?
     let networks: [String]?
     let countries: [String]?
+    let lockedFields: [Int]?
     let releaseDate: String?
     let firstAirDate: String?
     let lastAirDate: String?
@@ -1526,6 +1527,19 @@ struct UserInfo: Codable {
     let id: String?
     let username: String
     let isAdmin: Bool?
+    let permissions: [String]
+
+    init(
+        id: String?,
+        username: String,
+        isAdmin: Bool?,
+        permissions: [String] = []
+    ) {
+        self.id = id
+        self.username = username
+        self.isAdmin = isAdmin
+        self.permissions = permissions
+    }
 }
 
 // MARK: - Collections Response (array wrapper)

@@ -872,6 +872,7 @@ struct TVItemDetailView: View {
                 studios: item.studios,
                 networks: item.networks,
                 countries: item.countries,
+                lockedFields: item.lockedFields,
                 releaseDate: item.releaseDate,
                 firstAirDate: item.firstAirDate,
                 lastAirDate: item.lastAirDate,
